@@ -2,6 +2,8 @@ import argparse
 import os
 import numpy as np
 
+from scipy.linalg import sqrtm
+
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 
@@ -15,6 +17,7 @@ import torch
 os.makedirs("images", exist_ok=True)
 
 parser = argparse.ArgumentParser()
+# parser.add_argument('-f') # uncomment to run on colab
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.00005, help="learning rate")
@@ -30,7 +33,7 @@ print(opt)
 
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 
-cuda = True if torch.cuda.is_available() else False
+cuda = torch.cuda.is_available()
 
 
 class Generator(nn.Module):
@@ -77,6 +80,25 @@ class Discriminator(nn.Module):
         validity = self.model(img_flat)
         return validity
 
+def _sqrtm(input):
+    np_matrix = input.detach().cpu().numpy().astype(np.float_)
+    output = torch.from_numpy(sqrtm(np_matrix).real).to(input)
+    return output
+
+def frechet_inception_distance(generated, world):
+    '''
+    Computes FID between generated samples and real-world ones
+
+    :param generated: generated samples
+    :param world: real samples
+    :return:
+    '''
+    mu_g = torch.mean(generated,0).flatten()
+    mu_w = torch.mean(world,0).flatten()
+    cov_g = torch.cov(generated.flatten(start_dim=1,end_dim=3).T)
+    cov_w = torch.cov(world.flatten(start_dim=1,end_dim=3).T)
+
+    return (mu_g - mu_w).dot(mu_g - mu_w) + torch.trace(cov_w) + torch.trace(cov_g) - 2*torch.trace(_sqrtm(torch.linalg.matmul(cov_w, cov_g)))
 
 # Initialize generator and discriminator
 generator = Generator()
@@ -171,5 +193,8 @@ for epoch in range(opt.n_epochs):
             )
 
         if batches_done % opt.sample_interval == 0:
+            # Frechet Inception Distance
+            fid = frechet_inception_distance(fake_imgs, real_imgs)
+            print('[FID %f]' % fid.item())
             save_image(fake_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
         batches_done += 1
