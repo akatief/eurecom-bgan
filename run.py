@@ -94,4 +94,15 @@ dict_frech_dist = {'b_frech_dist':b_list_Frech_dist,'wass_frech_dist':w_list_Fre
 df_frech_dist = pd.DataFrame(dict_frech_dist)
 df_frech_dist.to_csv(path_or_buf='results/frech_dist.csv')
 
+df = pd.read_csv('results/frech_dist.csv')
+fig = px.line(df, y = ['wass_frech_dist','b_frech_dist'], title='Frechet Distance')
+fig.show()
+
+df1 = pd.read_csv('results/bGAN.csv')
+df2= pd.read_csv('results/WGAN.csv')
+df = pd.concat([df1, df2], axis=1)
+print(df)
+fig = px.line(df, y = ["b_loss_D","b_loss_G","wass_loss_G","wass_loss_D"], title='Wass Loss')
+fig.show()
+
 
