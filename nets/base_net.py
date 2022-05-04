@@ -23,7 +23,7 @@ class BaseDiscriminator(nn.Module):
         return validity
 
     @abstractmethod
-    def loss(self, scores_real, score_fake):
+    def loss(self, scores_real, scores_fake):
         pass
 
 

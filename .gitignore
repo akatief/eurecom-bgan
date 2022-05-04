@@ -1,0 +1,5 @@
+data/celebA/
+images/
+__pycache__/
+nets/__pycache__/
+.env/

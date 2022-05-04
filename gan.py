@@ -39,12 +39,14 @@ def frechet_inception_distance(generated, world):
 
 
 class Gan:
-    def __init__(self, generator, discriminator, lr):
+    def __init__(self, generator, discriminator, lr, dataset_name = "mnist", loss_name = ''):
         self.G = generator
         self.D = discriminator
         # Optimizers
         self.optimizer_G = torch.optim.RMSprop(generator.parameters(), lr=lr)
         self.optimizer_D = torch.optim.RMSprop(discriminator.parameters(), lr=lr)
+        self.dataset_name = dataset_name
+        self.loss_name = loss_name
         cuda = torch.cuda.is_available()
         if cuda:
             self.G.cuda()
@@ -53,6 +55,10 @@ class Gan:
 
     def train(self, dataloader, n_epochs, clip_value, n_critic, sample_interval):
         batches_done = 0
+        list_loss_G = []
+        list_loss_D = []
+        list_Frech_dist = []
+
         for epoch in range(n_epochs):
 
             for i, (imgs, _) in enumerate(dataloader):
@@ -99,16 +105,19 @@ class Gan:
 
                     loss_G.backward()
                     self.optimizer_G.step()
+                    if batches_done % 50 == 0:
+                        print(f"[Epoch {epoch}/{n_epochs}] [Batch {batches_done % len(dataloader)}/{len(dataloader)}] [D loss: {loss_D.item()}] [G loss: {loss_G.item()}]")
+                    list_loss_G.append(loss_G.item())
+                    list_loss_D.append(loss_D.item())
 
-                    print(
-                        "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                        % (epoch, n_epochs, batches_done % len(dataloader), len(dataloader), loss_D.item(),
-                           loss_G.item())
-                    )
 
                 if batches_done % sample_interval == 0:
                     # Frechet Inception Distance
                     fid = frechet_inception_distance(fake_imgs, real_imgs)
                     print('[FID %f]' % fid.item())
-                    save_image(fake_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
+                    list_Frech_dist.append(fid.item())
+                    os.makedirs(f"images/{self.dataset_name}/{self.loss_name}", exist_ok=True)
+                    save_image(fake_imgs.data[:25], f"images/{self.dataset_name}/{batches_done}.png", nrow=5, normalize=True)
                 batches_done += 1
+
+        return list_loss_G,list_loss_D,list_Frech_dist
