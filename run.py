@@ -49,11 +49,11 @@ mnist_dataloader = torch.utils.data.DataLoader(
 #%%
 
 os.makedirs("data/celebA", exist_ok=True)
-celeba_dataloader = torch.utils.data.DataLoader(
+''' celeba_dataloader = torch.utils.data.DataLoader(
     datasets.CelebA(
         "data/celebA",
         #split="training",
-        download=False, #True gives a Badzip error
+        download=True, #True gives a Badzip error
         # download the file from
         # https://drive.google.com/drive/folders/0B7EVK8r0v71pTUZsaXdaSnZBZzg?resourcekey=0-rJlzl934LzC-Xp28GeIBzQ
         # and save in the above folder
@@ -62,6 +62,7 @@ celeba_dataloader = torch.utils.data.DataLoader(
     batch_size=opt.batch_size,
     shuffle=True,
 )
+'''
 
 
 dataloader = mnist_dataloader #or celeba_dataloader

@@ -16,3 +16,11 @@ class BGanGenerator(BaseGenerator):
 
     def loss(self, scores):
         return torch.mean(0.5 * torch.square(scores - 1))
+
+    #Regularization on D-gan
+    #Check distribution smoothness of the training dataset
+    #Check other applications ==> Transfer learning
+    #CHeck other recent papers based on the first ones
+    #Try CIFAR10
+    #Bregman divergence
+
