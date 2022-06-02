@@ -14,7 +14,7 @@ from gan import Gan
 from nets.bgan_net import BGanGenerator, BGanDiscriminator
 from nets.wasserstein_net import WassersteinGenerator, WassersteinDiscriminator
 
-os.makedirs("images", exist_ok=True)
+os.makedirs("data/images", exist_ok=True)
 
 parser = argparse.ArgumentParser()
 # parser.add_argument('-f') # uncomment to run on colab
@@ -33,7 +33,7 @@ print(opt)
 
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 
-os.makedirs("data/mnist", exist_ok=True)
+os.makedirs("data/datasets/mnist", exist_ok=True)
 mnist_dataloader = torch.utils.data.DataLoader(
     datasets.MNIST(
         "data/mnist",
@@ -85,22 +85,22 @@ w_list_loss_G,w_list_loss_D,w_list_Frech_dist = wasserstein_Gan.train(dataloader
 
 b_loss_dict = {'b_loss_G': b_list_loss_G, 'b_loss_D' : b_list_loss_D,  }
 df_b = pd.DataFrame(b_loss_dict)
-df_b.to_csv(path_or_buf='results/bGAN.csv')
+df_b.to_csv(path_or_buf='data/results/bGAN.csv')
 
 wass_loss_dict = {'wass_loss_G': w_list_loss_G, 'wass_loss_D' : w_list_loss_D,  }
 df_w = pd.DataFrame(wass_loss_dict)
-df_w.to_csv(path_or_buf='results/WGAN.csv')
+df_w.to_csv(path_or_buf='data/results/WGAN.csv')
 
 dict_frech_dist = {'b_frech_dist':b_list_Frech_dist,'wass_frech_dist':w_list_Frech_dist}
 df_frech_dist = pd.DataFrame(dict_frech_dist)
-df_frech_dist.to_csv(path_or_buf='results/frech_dist.csv')
+df_frech_dist.to_csv(path_or_buf='data/results/frech_dist.csv')
 
-df = pd.read_csv('results/frech_dist.csv')
+df = pd.read_csv('data/results/frech_dist.csv')
 fig = px.line(df, y = ['wass_frech_dist','b_frech_dist'], title='Frechet Distance')
 fig.show()
 
-df1 = pd.read_csv('results/bGAN.csv')
-df2= pd.read_csv('results/WGAN.csv')
+df1 = pd.read_csv('data/results/bGAN.csv')
+df2= pd.read_csv('data/results/WGAN.csv')
 df = pd.concat([df1, df2], axis=1)
 print(df)
 fig = px.line(df, y = ["b_loss_D","b_loss_G","wass_loss_G","wass_loss_D"], title='Wass Loss')

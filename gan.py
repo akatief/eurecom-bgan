@@ -106,7 +106,8 @@ class Gan:
                     loss_G.backward()
                     self.optimizer_G.step()
                     if batches_done % 50 == 0:
-                        print(f"[Epoch {epoch}/{n_epochs}] [Batch {batches_done % len(dataloader)}/{len(dataloader)}] [D loss: {loss_D.item()}] [G loss: {loss_G.item()}]")
+                        print(f"[Epoch {epoch}/{n_epochs}] [Batch {batches_done % len(dataloader)}/{len(dataloader)}] "
+                              f"[D loss: {loss_D.item()}] [G loss: {loss_G.item()}]")
                     list_loss_G.append(loss_G.item())
                     list_loss_D.append(loss_D.item())
 
@@ -116,8 +117,9 @@ class Gan:
                     fid = frechet_inception_distance(fake_imgs, real_imgs)
                     print('[FID %f]' % fid.item())
                     list_Frech_dist.append(fid.item())
-                    os.makedirs(f"images/{self.dataset_name}/{self.loss_name}", exist_ok=True)
-                    save_image(fake_imgs.data[:25], f"images/{self.dataset_name}/{batches_done}.png", nrow=5, normalize=True)
+                    os.makedirs(f"data/images/{self.dataset_name}/{self.loss_name}", exist_ok=True)
+                    save_image(fake_imgs.data[:25],
+                               f"data/images/{self.dataset_name}/{self.loss_name}/{batches_done}.png", nrow=5, normalize=True)
                 batches_done += 1
 
         return list_loss_G,list_loss_D,list_Frech_dist
