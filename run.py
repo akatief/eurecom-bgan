@@ -13,13 +13,14 @@ import torch
 from gan import Gan
 from nets.bgan_net import BGanGenerator, BGanDiscriminator
 from nets.wasserstein_net import WassersteinGenerator, WassersteinDiscriminator
+from nets.arimoto_net import ArimotoGenerator, ArimotoDiscriminator
 
 os.makedirs("data/images", exist_ok=True)
 
 parser = argparse.ArgumentParser()
 # parser.add_argument('-f') # uncomment to run on colab
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=100, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.00005, help="learning rate")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
@@ -27,7 +28,7 @@ parser.add_argument("--img_size", type=int, default=28, help="size of each image
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 parser.add_argument("--n_critic", type=int, default=10, help="number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=0.01, help="lower and upper clip value for disc. weights")
-parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")
+parser.add_argument("--sample_interval", type=int, default=32*10, help="interval betwen image samples")
 opt = parser.parse_args()
 print(opt)
 
@@ -45,8 +46,7 @@ mnist_dataloader = torch.utils.data.DataLoader(
     shuffle=True,
 )
 
-
-#%%
+# %%
 
 os.makedirs("data/celebA", exist_ok=True)
 ''' celeba_dataloader = torch.utils.data.DataLoader(
@@ -64,24 +64,29 @@ os.makedirs("data/celebA", exist_ok=True)
 )
 '''
 
+dataloader = mnist_dataloader  # or celeba_dataloader
 
-dataloader = mnist_dataloader #or celeba_dataloader
+# B-GAN
+bGan_G = BGanGenerator(img_shape, opt.latent_dim, alpha=0.1)
+bGan_D = BGanDiscriminator(img_shape, alpha=0.1)
 
-bGan_G = BGanGenerator(img_shape, opt.latent_dim)
-bGan_D = BGanDiscriminator(img_shape)
-
-bGan = Gan(bGan_G, bGan_D, opt.lr, dataset_name="mnist",loss_name="bgan") #mnist or celeba
+bGan = Gan(bGan_G, bGan_D, opt.lr, dataset_name="mnist", loss_name="bgan")  # mnist or celeba
 b_list_loss_G,b_list_loss_D,b_list_Frech_dist = bGan.train(dataloader, opt.n_epochs, opt.clip_value, opt.n_critic, opt.sample_interval)
 
-
-
+# W-GAN
 wasserstein_G = WassersteinGenerator(img_shape, opt.latent_dim)
 wasserstein_D = WassersteinDiscriminator(img_shape)
 
-wasserstein_Gan = Gan(wasserstein_G, wasserstein_D, opt.lr,dataset_name="mnist",loss_name="wgan") #mnist or celeba
+wasserstein_Gan = Gan(wasserstein_G, wasserstein_D, opt.lr, dataset_name="mnist", loss_name="wgan")  # mnist or celeba
 w_list_loss_G,w_list_loss_D,w_list_Frech_dist = wasserstein_Gan.train(dataloader, opt.n_epochs, opt.clip_value, opt.n_critic, opt.sample_interval)
 
+# Arimoto-GAN
+arimoto_G = ArimotoGenerator(img_shape, opt.latent_dim, alpha=0.99)
+arimoto_D = ArimotoDiscriminator(img_shape, alpha=0.99)
 
+arimoto_Gan = Gan(arimoto_G, arimoto_D, opt.lr, dataset_name="mnist", loss_name="arimoto")
+a_list_loss_G, a_list_loss_D, a_list_Frech_dist = arimoto_Gan.train(dataloader, opt.n_epochs, opt.clip_value,
+                                                                    opt.n_critic, opt.sample_interval)
 
 b_loss_dict = {'b_loss_G': b_list_loss_G, 'b_loss_D' : b_list_loss_D,  }
 df_b = pd.DataFrame(b_loss_dict)
@@ -91,19 +96,23 @@ wass_loss_dict = {'wass_loss_G': w_list_loss_G, 'wass_loss_D' : w_list_loss_D,  
 df_w = pd.DataFrame(wass_loss_dict)
 df_w.to_csv(path_or_buf='data/results/WGAN.csv')
 
-dict_frech_dist = {'b_frech_dist':b_list_Frech_dist,'wass_frech_dist':w_list_Frech_dist}
+ari_loss_dict = {'ari_loss_G': a_list_loss_G, 'ari_loss_D': a_list_loss_D, }
+df_a = pd.DataFrame(ari_loss_dict)
+df_a.to_csv(path_or_buf='data/results/AGAN.csv')
+
+dict_frech_dist = {'b_frech_dist': b_list_Frech_dist,
+                   'wass_frech_dist': w_list_Frech_dist,
+                   'a_frech_dist': a_list_Frech_dist}
 df_frech_dist = pd.DataFrame(dict_frech_dist)
 df_frech_dist.to_csv(path_or_buf='data/results/frech_dist.csv')
 
 df = pd.read_csv('data/results/frech_dist.csv')
-fig = px.line(df, y = ['wass_frech_dist','b_frech_dist'], title='Frechet Distance')
+fig = px.line(df, y=['wass_frech_dist', 'b_frech_dist','a_frech_dist'], title='Frechet Distance')
 fig.show()
 
 df1 = pd.read_csv('data/results/bGAN.csv')
-df2= pd.read_csv('data/results/WGAN.csv')
+df2 = pd.read_csv('data/results/WGAN.csv')
 df = pd.concat([df1, df2], axis=1)
 print(df)
-fig = px.line(df, y = ["b_loss_D","b_loss_G","wass_loss_G","wass_loss_D"], title='Wass Loss')
+fig = px.line(df, y=["b_loss_D", "b_loss_G", "wass_loss_G", "wass_loss_D"], title='Wass Loss')
 fig.show()
-
-

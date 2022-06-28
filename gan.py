@@ -39,12 +39,12 @@ def frechet_inception_distance(generated, world):
 
 
 class Gan:
-    def __init__(self, generator, discriminator, lr, dataset_name = "mnist", loss_name = ''):
+    def __init__(self, generator, discriminator, lr_G, lr_D, dataset_name="mnist", loss_name=''):
         self.G = generator
         self.D = discriminator
         # Optimizers
-        self.optimizer_G = torch.optim.RMSprop(generator.parameters(), lr=lr)
-        self.optimizer_D = torch.optim.RMSprop(discriminator.parameters(), lr=lr)
+        self.optimizer_G = torch.optim.RMSprop(generator.parameters(), lr=lr_G)
+        self.optimizer_D = torch.optim.RMSprop(discriminator.parameters(), lr=lr_D)
         self.dataset_name = dataset_name
         self.loss_name = loss_name
         cuda = torch.cuda.is_available()
@@ -106,11 +106,11 @@ class Gan:
                     loss_G.backward()
                     self.optimizer_G.step()
                     if batches_done % 50 == 0:
-                        print(f"[Epoch {epoch}/{n_epochs}] [Batch {batches_done % len(dataloader)}/{len(dataloader)}] "
+                        print(f"[Type {self.loss_name}]"
+                              f"[Epoch {epoch}/{n_epochs}] [Batch {batches_done % len(dataloader)}/{len(dataloader)}] "
                               f"[D loss: {loss_D.item()}] [G loss: {loss_G.item()}]")
                     list_loss_G.append(loss_G.item())
                     list_loss_D.append(loss_D.item())
-
 
                 if batches_done % sample_interval == 0:
                     # Frechet Inception Distance
@@ -119,7 +119,8 @@ class Gan:
                     list_Frech_dist.append(fid.item())
                     os.makedirs(f"data/images/{self.dataset_name}/{self.loss_name}", exist_ok=True)
                     save_image(fake_imgs.data[:25],
-                               f"data/images/{self.dataset_name}/{self.loss_name}/{batches_done}.png", nrow=5, normalize=True)
+                               f"data/images/{self.dataset_name}/{self.loss_name}/{batches_done}.png", nrow=5,
+                               normalize=True)
                 batches_done += 1
 
-        return list_loss_G,list_loss_D,list_Frech_dist
+        return list_loss_G, list_loss_D, list_Frech_dist
