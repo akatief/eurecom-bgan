@@ -1,0 +1,5 @@
+data/datasets
+data/images/
+__pycache__/
+nets/__pycache__/
+.env/
